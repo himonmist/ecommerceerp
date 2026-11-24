@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint · Types · Tests · Build · E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lv
+          POSTGRES_PASSWORD: lv_ci
+          POSTGRES_DB: lv_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U lv" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://lv:lv_ci@localhost:5432/lv_test
+      E2E_DATABASE_URL: postgresql://lv:lv_ci@localhost:5432/lv_e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Dependency audit (fail on high/critical)
+        run: npm audit --audit-level=high
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Prepare databases
+        run: |
+          PGPASSWORD=lv_ci psql -h localhost -U lv -d lv_test -c "CREATE DATABASE lv_e2e"
+          npx prisma migrate deploy
+          DATABASE_URL=$E2E_DATABASE_URL npx prisma migrate deploy
+      - name: Unit + integration tests (TDD suite, coverage gate)
+        run: |
+          printf 'DATABASE_URL="%s"\n' "$DATABASE_URL" > .env.test
+          npm run test:coverage
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ env.E2E_DATABASE_URL }}
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
