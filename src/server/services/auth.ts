@@ -5,6 +5,7 @@ import { AppError } from "@/server/errors";
 import { dummyHash, verifyPassword } from "@/server/security/password";
 import { generateToken, hashToken } from "@/server/security/tokens";
 import type { Ctx } from "@/server/context";
+import { ROLE_PRESETS } from "@/server/security/permissions";
 
 export const SESSION_TTL_MS = 7 * 864e5;
 const MAX_FAILURES = 5;
@@ -83,7 +84,8 @@ export async function getSessionContext(token: string | undefined | null): Promi
   return {
     tenantId: tenant.id,
     userId: session.userId,
-    permissions: role?.permissions ?? [],
+    // Built-in roles always reflect the current presets, so new modules reach existing stores.
+    permissions: role ? (role.isSystem && ROLE_PRESETS[role.name] ? [...ROLE_PRESETS[role.name]!] : role.permissions) : [],
     readOnly: trialOver || tenant.status === "read_only",
     ip: session.ip,
     user: { name: session.user.name, email: session.user.email },
