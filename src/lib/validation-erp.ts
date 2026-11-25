@@ -133,3 +133,21 @@ export const accountSchema = z.object({
   kind: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.enum(["cash", "bank", "wallet"]).optional()),
   description: optText(300),
 });
+
+// ── POS & locations ──
+export const warehouseSchema = z.object({ name: z.string().trim().min(2).max(80), type: z.enum(["warehouse", "showroom"]).default("warehouse"), address: optText(300) });
+export const transferSchema = z.object({
+  fromWarehouseId: uuid, toWarehouseId: uuid, date, carrier: optText(100), notes: optText(500),
+  items: z.array(z.object({ variantId: uuid, qty: z.coerce.number().int().min(1).max(1_000_000) })).min(1, "Add at least one item").max(200),
+});
+export const registerSchema = z.object({ name: z.string().trim().min(2).max(60), warehouseId: uuid });
+export const openShiftSchema = z.object({ openingFloat: z.preprocess((v) => (v === "" || v == null ? "0" : String(v)), money) });
+export const posSaleSchema = z.object({
+  customerId: optUuid,
+  useAdvance: z.coerce.boolean().default(false),
+  discount: optMoney,
+  items: z.array(z.object({ variantId: uuid, qty: z.coerce.number().int().min(1).max(10_000), discount: optMoney })).min(1, "The cart is empty").max(200),
+  tenders: z.array(z.object({ method: z.enum(["cash", "card", "bkash", "nagad"]), amount: money, reference: optText(100) })).max(6).default([]),
+});
+export const cashMovementSchema = z.object({ type: z.enum(["cash_drop", "pay_in", "pay_out"]), amount: amountPos, reason: z.string().trim().min(3, "Give a reason").max(200) });
+export const closeShiftSchema = z.object({ countedCash: money, notes: optText(500) });

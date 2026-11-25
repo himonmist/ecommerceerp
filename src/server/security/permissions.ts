@@ -11,6 +11,7 @@ export const PERMISSIONS = [
   "sales.view", "sales.manage",
   "purchase.view", "purchase.manage",
   "accounting.view", "accounting.manage", "accounting.verify",
+  "pos.use", "pos.manage",
   "settings.manage",
   "team.manage",
 ] as const;
@@ -19,8 +20,8 @@ export type Permission = (typeof PERMISSIONS)[number];
 export const ROLE_PRESETS: Record<string, Permission[]> = {
   Owner: [...PERMISSIONS],
   Manager: ["dashboard.view", "catalog.view", "catalog.manage", "inventory.manage", "orders.view", "orders.manage", "customers.view", "marketing.manage",
-    "sales.view", "sales.manage", "purchase.view", "purchase.manage", "accounting.view", "accounting.manage"],
-  Staff: ["dashboard.view", "catalog.view", "orders.view", "orders.manage", "customers.view", "sales.view", "purchase.view"],
+    "sales.view", "sales.manage", "purchase.view", "purchase.manage", "accounting.view", "accounting.manage", "pos.use", "pos.manage"],
+  Staff: ["dashboard.view", "catalog.view", "orders.view", "orders.manage", "customers.view", "sales.view", "purchase.view", "pos.use"],
 };
 
 export const hasPermission = (granted: readonly string[], p: Permission) => granted.includes(p);

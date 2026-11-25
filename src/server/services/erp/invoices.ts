@@ -13,7 +13,7 @@ import { D, asDate, buildLines, defaultWarehouseId, loadVariants, lockIds, money
 import type { z } from "zod";
 
 export type InvoiceInput = z.input<typeof invoiceSchema>;
-type ParsedInvoice = z.output<typeof invoiceSchema> & { quotationId?: string };
+type ParsedInvoice = z.output<typeof invoiceSchema> & { quotationId?: string; warehouseId?: string; channel?: "erp" | "pos"; shiftId?: string };
 
 /** Outstanding receivable for a customer: remaining opening + unpaid posted invoices. */
 export async function customerOutstanding(tx: Tx, customerId: string, openingDue: { toString(): string }) {
@@ -47,12 +47,12 @@ export async function createInvoiceTx(tx: Tx, ctx: Ctx, input: ParsedInvoice) {
     }
   }
 
-  const warehouseId = await defaultWarehouseId(tx);
+  const warehouseId = input.warehouseId ?? await defaultWarehouseId(tx);
   const number = await nextNumber(tx, ctx.tenantId, "invoice");
   const invoice = await tx.salesInvoice.create({
     data: {
       tenantId: ctx.tenantId, number, customerId: customer?.id ?? null, customerName: customer?.name ?? input.walkInName!,
-      warehouseId, quotationId: input.quotationId ?? null, invoiceDate: asDate(input.invoiceDate), dueDate: input.dueDate ? asDate(input.dueDate) : null,
+      warehouseId, quotationId: input.quotationId ?? null, channel: input.channel ?? "erp", shiftId: input.shiftId ?? null, invoiceDate: asDate(input.invoiceDate), dueDate: input.dueDate ? asDate(input.dueDate) : null,
       subtotal: doc.subtotal, vatTotal: doc.vatTotal, discount: doc.discount, additionalCharge: doc.additionalCharge, total: doc.total,
       paid: money(paid), paymentStatus: paymentStatus(total, paid), notes: input.notes ?? null, createdBy: ctx.userId,
       items: { create: rows.map((r) => ({ tenantId: ctx.tenantId, variantId: r.variantId, description: r.description, qty: r.qty, unitPrice: r.unitPrice,

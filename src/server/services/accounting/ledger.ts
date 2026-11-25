@@ -48,7 +48,13 @@ export async function post(tx: Tx, actor: Actor, e: Entry) {
   const settings = await activeLedger(tx, actor.tenantId);
   if (!settings) return null;
   if (e.status !== "draft") assertOpenPeriod(settings.lockedThrough, e.date);
-  const ids = await accountIds(tx, e.lines.flatMap((l) => (l.key ? [l.key] : [])));
+  const keys = e.lines.flatMap((l) => (l.key ? [l.key] : []));
+  let ids = await accountIds(tx, keys);
+  if (keys.some((k) => !ids.has(k))) {
+    // A newer release added a system account this store doesn't have yet.
+    await seedAccounts(tx, actor.tenantId);
+    ids = await accountIds(tx, keys);
+  }
   const lines = e.lines.map((l) => {
     const accountId = l.accountId ?? ids.get(l.key!);
     if (!accountId) throw new Error(`Account not found for ${l.key}`);

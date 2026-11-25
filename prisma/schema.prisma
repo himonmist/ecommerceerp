@@ -519,6 +519,8 @@ model SalesInvoice {
   customerName     String              @map("customer_name")
   warehouseId      String              @map("warehouse_id") @db.Uuid
   quotationId      String?             @map("quotation_id") @db.Uuid
+  channel          String              @default("erp") // erp|pos
+  shiftId          String?             @map("shift_id") @db.Uuid
   invoiceDate      DateTime            @map("invoice_date") @db.Date
   dueDate          DateTime?           @map("due_date") @db.Date
   subtotal         Decimal             @db.Decimal(18, 2)
@@ -939,4 +941,84 @@ model JournalLine {
   @@index([tenantId, accountId])
   @@index([journalId])
   @@map("journal_lines")
+}
+
+// ───────────────────────── POS & multi-location ─────────────────────────
+
+model PosRegister {
+  id          String     @id @default(uuid(7)) @db.Uuid
+  tenantId    String     @map("tenant_id") @db.Uuid
+  name        String
+  warehouseId String     @map("warehouse_id") @db.Uuid
+  isActive    Boolean    @default(true) @map("is_active")
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  shifts      PosShift[]
+
+  @@unique([tenantId, name])
+  @@map("pos_registers")
+}
+
+model PosShift {
+  id           String            @id @default(uuid(7)) @db.Uuid
+  tenantId     String            @map("tenant_id") @db.Uuid
+  number       String
+  registerId   String            @map("register_id") @db.Uuid
+  status       String            @default("open") // open|closed
+  openingFloat Decimal           @map("opening_float") @db.Decimal(18, 2)
+  openedBy     String            @map("opened_by") @db.Uuid
+  openedAt     DateTime          @default(now()) @map("opened_at") @db.Timestamptz(6)
+  expectedCash Decimal?          @map("expected_cash") @db.Decimal(18, 2)
+  countedCash  Decimal?          @map("counted_cash") @db.Decimal(18, 2)
+  variance     Decimal?          @db.Decimal(18, 2)
+  closedBy     String?           @map("closed_by") @db.Uuid
+  closedAt     DateTime?         @map("closed_at") @db.Timestamptz(6)
+  notes        String?
+  register     PosRegister       @relation(fields: [registerId], references: [id])
+  movements    PosCashMovement[]
+
+  @@unique([tenantId, number])
+  @@index([registerId, status])
+  @@map("pos_shifts")
+}
+
+model PosCashMovement {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  shiftId   String   @map("shift_id") @db.Uuid
+  type      String // cash_drop|pay_in|pay_out
+  amount    Decimal  @db.Decimal(18, 2)
+  reason    String
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  shift     PosShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@map("pos_cash_movements")
+}
+
+model StockTransfer {
+  id              String              @id @default(uuid(7)) @db.Uuid
+  tenantId        String              @map("tenant_id") @db.Uuid
+  number          String
+  fromWarehouseId String              @map("from_warehouse_id") @db.Uuid
+  toWarehouseId   String              @map("to_warehouse_id") @db.Uuid
+  date            DateTime            @db.Date
+  carrier         String?
+  notes           String?
+  createdBy       String?             @map("created_by") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  items           StockTransferItem[]
+
+  @@unique([tenantId, number])
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id         String        @id @default(uuid(7)) @db.Uuid
+  tenantId   String        @map("tenant_id") @db.Uuid
+  transferId String        @map("transfer_id") @db.Uuid
+  variantId  String        @map("variant_id") @db.Uuid
+  qty        Int
+  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+
+  @@map("stock_transfer_items")
 }

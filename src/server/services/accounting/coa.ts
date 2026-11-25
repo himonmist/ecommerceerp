@@ -42,7 +42,8 @@ export const COA: Seed[] = [
   { code: "6300", name: "Transport & Delivery", nature: "expense", group: "Operating Expenses" },
   { code: "6400", name: "Marketing & Ads", nature: "expense", group: "Operating Expenses" },
   { code: "6500", name: "Bank & Payment Charges", nature: "expense", group: "Operating Expenses" },
-  { code: "6900", name: "Miscellaneous Expenses", nature: "expense", group: "Operating Expenses" },
+  { code: "6600", name: "Cash Over / Short", nature: "expense", group: "Operating Expenses", key: "cash_short" },
+  { code: "6900", name: "Miscellaneous Expenses", nature: "expense", group: "Operating Expenses", key: "misc_expense" },
 ];
 
 export const SYSTEM_KEYS = COA.filter((a) => a.key).map((a) => a.key!) ;
@@ -56,6 +57,10 @@ export async function seedAccounts(tx: Tx, tenantId: string) {
   const missing = COA.filter((a) => !codes.has(a.code) && !(a.key && keys.has(a.key)));
   if (missing.length) {
     await tx.account.createMany({ data: missing.map((a) => ({ tenantId, code: a.code, name: a.name, nature: a.nature, groupName: a.group, systemKey: a.key ?? null, kind: a.kind ?? null })) });
+  }
+  // Accounts that gained a system key in a later release keep their code and get the key.
+  for (const a of COA.filter((x) => x.key && !keys.has(x.key) && codes.has(x.code))) {
+    await tx.account.updateMany({ where: { tenantId, code: a.code, systemKey: null }, data: { systemKey: a.key } });
   }
 }
 
