@@ -145,3 +145,12 @@ export async function customerAging(ctx: Ctx, asOf: Date = new Date()) {
     return { rows, totals: { opening: sum("opening"), current: sum("current"), d31_60: sum("d31_60"), d61_90: sum("d61_90"), d90plus: sum("d90plus"), total: sum("total") } };
   });
 }
+
+/** Exact phone lookup for the POS (normalises +88 / spaces). */
+export async function lookupCustomerByPhone(ctx: Ctx, raw: string) {
+  authorize(ctx, "pos.use", { write: false });
+  const phone = raw.replace(/[\s-]/g, "").replace(/^\+?88/, "");
+  if (!/^01[3-9]\d{8}$/.test(phone)) return null;
+  const c = await withTenant(ctx.tenantId, (tx) => tx.customer.findUnique({ where: { tenantId_phone: { tenantId: ctx.tenantId, phone } } }));
+  return c ? { id: c.id, name: c.name, phone: c.phone, advance: money(D(c.advanceBalance)) } : null;
+}

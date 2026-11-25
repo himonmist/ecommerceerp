@@ -9,7 +9,7 @@ const STATUS_STYLE: Record<string, string> = {
   archived: "bg-slate-100 text-slate-500", paid: "bg-emerald-100 text-emerald-800", unpaid: "bg-amber-100 text-amber-800", refunded: "bg-rose-100 text-rose-800",
   partial: "bg-sky-100 text-sky-800", void: "bg-slate-200 text-slate-600 line-through", posted: "bg-emerald-100 text-emerald-800",
   sent: "bg-sky-100 text-sky-800", accepted: "bg-emerald-100 text-emerald-800", rejected: "bg-rose-100 text-rose-800", converted: "bg-violet-100 text-violet-800",
-  issued: "bg-amber-100 text-amber-800", partially_received: "bg-sky-100 text-sky-800", received: "bg-emerald-100 text-emerald-800",
+  issued: "bg-amber-100 text-amber-800", open: "bg-emerald-100 text-emerald-800", closed: "bg-slate-200 text-slate-700", partially_received: "bg-sky-100 text-sky-800", received: "bg-emerald-100 text-emerald-800",
 };
 
 export function StatusBadge({ status }: { status: string }) {

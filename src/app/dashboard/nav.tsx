@@ -10,8 +10,10 @@ const STORE: Item[] = [
   { href: "/dashboard/products", label: "Products", icon: Icon.box },
   { href: "/dashboard/categories", label: "Categories", icon: Icon.layers },
   { href: "/dashboard/inventory", label: "Inventory", icon: Icon.chart },
+  { href: "/dashboard/locations", label: "Locations", icon: Icon.store },
   { href: "/dashboard/coupons", label: "Coupons", icon: Icon.tag },
 ];
+const POS: Item[] = [{ href: "/dashboard/pos", label: "Point of sale", icon: Icon.bolt }];
 const SALES: Item[] = [
   { href: "/dashboard/erp", label: "ERP hub", icon: Icon.bolt, exact: true },
   { href: "/dashboard/erp/invoices", label: "Sales invoices", icon: Icon.cart },
@@ -51,11 +53,12 @@ function Group({ title, items, path }: { title?: string; items: Item[]; path: st
   );
 }
 
-export function DashboardNav({ erp, accounting }: { erp: boolean; accounting: boolean }) {
+export function DashboardNav({ erp, accounting, pos }: { erp: boolean; accounting: boolean; pos: boolean }) {
   const path = usePathname();
   return (
     <nav aria-label="Dashboard" className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
       <Group items={STORE} path={path} />
+      {pos && <Group title="In-store" items={POS} path={path} />}
       {erp && <Group title="ERP · Sales" items={SALES} path={path} />}
       {erp && <Group title="ERP · Purchase" items={PURCHASE} path={path} />}
       {accounting && <Group title="Accounting" items={ACCOUNTING} path={path} />}

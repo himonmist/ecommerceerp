@@ -3,7 +3,7 @@ import { listMovements } from "@/server/services/inventory";
 import { Empty, PageHeader, fmtDate } from "@/components/ui";
 
 export const metadata = { title: "Inventory" };
-const TYPE: Record<string, string> = { opening: "Opening stock", sale: "Sale", sales_return: "Customer return", adjustment_in: "Adjustment +", adjustment_out: "Adjustment −", purchase: "Purchase / GRN", purchase_return: "Return to supplier", invoice_void: "Invoice voided" };
+const TYPE: Record<string, string> = { opening: "Opening stock", sale: "Sale", sales_return: "Customer return", adjustment_in: "Adjustment +", adjustment_out: "Adjustment −", purchase: "Purchase / GRN", purchase_return: "Return to supplier", invoice_void: "Invoice voided", transfer_in: "Transfer in", transfer_out: "Transfer out" };
 
 export default async function InventoryPage() {
   const ctx = await requireCtx();

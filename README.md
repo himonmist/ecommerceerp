@@ -76,6 +76,26 @@ You can switch the module on or off in **Settings → Modules**. It's on by defa
   - closed periods reject postings
   - all ledger tables are under FORCE row-level security through `lv_app`
 
+## Phase 4 — Point of sale & multi-location inventory
+
+- **Registers and shifts.** Each register sells from one location (showroom or warehouse). A cashier opens a shift with a cash float; the database allows only one open shift per register.
+- **Fast counter checkout.**
+  - search, scan a barcode or SKU and press Enter, or tap product tiles (availability shown at that location)
+  - quick 5/10/15/20% or fixed discounts; find a customer by phone (any format) and use their store credit
+  - split payment across cash, card, bKash and Nagad; extra cash returns change, but card and wallet payments can't exceed what's due
+  - prices always come from the catalogue's POS price
+  - keyboard shortcuts: F2 search, F9 / F10 exact cash / card, F12 complete, Esc new sale
+  - printable 80 mm receipt
+- **Every POS sale is a normal sales invoice** (channel `pos`): stock leaves the register's location atomically, the receipts are recorded, and it posts to the ledger automatically.
+- **Cash control.**
+  - cash drops (Dr Bank / Cr Cash), pay-outs (petty expense) and pay-ins (float top-up) are posted as they happen
+  - closing compares counted cash with expected (float + cash sales + pay-ins − drops − pay-outs) and books any difference to **Cash Over / Short**
+  - the Z-report shows sales by payment method and the drawer reconciliation
+- **Locations:** warehouses and showrooms with units and stock value, a product × location stock matrix, and transfer challans. A transfer is one stock-out and one stock-in movement; value doesn't change, so there's no ledger entry.
+- New system accounts (Cash Over / Short, Miscellaneous Expenses) are added to existing stores automatically the first time they're needed.
+
+![POS register](docs/screenshots/pos-register.png)
+
 ## Getting started
 
 ```bash

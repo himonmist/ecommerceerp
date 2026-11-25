@@ -139,3 +139,14 @@ describe("POS shifts and sales", () => {
     expect(cat.find((c) => c.id === v.id)).toMatchObject({ barcode: "8901234567890", price: "250", available: 10 });
   });
 });
+
+describe("POS customer lookup", () => {
+  it("finds customers by phone in any common format", async () => {
+    const { lookupCustomerByPhone } = await import("@/server/services/erp/customers");
+    const s = await makeStore();
+    await createCustomer(s.ctx, { name: "Phone Person", phone: "01911111111" });
+    expect((await lookupCustomerByPhone(s.ctx, "+880 1911-111111"))?.name).toBe("Phone Person");
+    expect(await lookupCustomerByPhone(s.ctx, "01922222222")).toBeNull();
+    expect(await lookupCustomerByPhone(s.ctx, "nope")).toBeNull();
+  });
+});

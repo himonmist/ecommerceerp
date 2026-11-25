@@ -21,7 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             View storefront <Icon.external className="h-3 w-3" />
           </a>
         </div>
-        <div className="mt-4 lg:mt-6 lg:flex-1"><DashboardNav erp={modules.has("erp")} accounting={ctx.permissions.includes("accounting.view")} /></div>
+        <div className="mt-4 lg:mt-6 lg:flex-1"><DashboardNav erp={modules.has("erp")} accounting={ctx.permissions.includes("accounting.view")} pos={ctx.permissions.includes("pos.use")} /></div>
         <form action={logoutAction} className="mt-4 hidden lg:block">
           <div className="mb-3 truncate px-3 text-xs text-slate-500">{ctx.user?.email}</div>
           <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white">
