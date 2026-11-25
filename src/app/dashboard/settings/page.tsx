@@ -4,11 +4,18 @@ import { prisma } from "@/server/db/client";
 import { withTenant } from "@/server/db/tenant";
 import { formatBDT } from "@/lib/money";
 import { PageHeader, StatusBadge, fmtDate } from "@/components/ui";
+import { FormSuccess } from "@/components/form";
+import { TOGGLEABLE, enabledModules } from "@/server/services/modules";
+import { hasPermission } from "@/server/security/permissions";
+import { toggleModuleAction } from "../erp/actions";
 
 export const metadata = { title: "Settings" };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ module?: string }> }) {
   const ctx = await requireCtx();
+  const sp = await searchParams;
+  const modules = await enabledModules(ctx);
+  const canSettings = hasPermission(ctx.permissions, "settings.manage") && !ctx.readOnly;
   const host = (await headers()).get("host") ?? "";
   const [plans, data] = await Promise.all([
     prisma.plan.findMany({ orderBy: { sortOrder: "asc" } }),
@@ -23,7 +30,20 @@ export default async function SettingsPage() {
   return (
     <>
       <PageHeader title="Settings" subtitle="Store, plan, delivery and security overview." />
+      {sp.module === "erp" && !modules.has("erp") && <div className="mb-6"><FormSuccess message="Turn on the Wholesale ERP module below to use sales invoices, purchase orders and supplier bills." /></div>}
       <div className="grid gap-6 lg:grid-cols-2">
+        <section className="card p-6 lg:col-span-2">
+          <h2 className="font-bold">Modules</h2>
+          <p className="mt-1 text-sm text-slate-500">Turning a module off hides its menus. Your records are kept.</p>
+          <ul className="mt-4 divide-y divide-slate-100">
+            {Object.entries(TOGGLEABLE).map(([key, label]) => (
+              <li key={key} className="flex items-center justify-between py-3">
+                <span><span className="font-semibold">{label}</span><span className={`ml-3 badge ${modules.has(key) ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{modules.has(key) ? "On" : "Off"}</span></span>
+                {canSettings && <form action={toggleModuleAction.bind(null, key, !modules.has(key))}><button className={modules.has(key) ? "btn-secondary" : "btn-primary"}>{modules.has(key) ? "Turn off" : "Turn on"}</button></form>}
+              </li>
+            ))}
+          </ul>
+        </section>
         <section className="card p-6">
           <h2 className="font-bold">Store</h2>
           <dl className="mt-4 space-y-3 text-sm">

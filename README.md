@@ -6,6 +6,8 @@
 
 ![Landing page](docs/screenshots/landing-hero.png)
 
+![ERP direct invoice](docs/screenshots/erp-new-invoice.png)
+
 This is **Phase 1 (MVP)** of the PRD in [`docs/vendrdesk-analysis/02-PRD.md`](docs/vendrdesk-analysis/02-PRD.md). The database follows the reference design in [`04-DATABASE.md`](docs/vendrdesk-analysis/04-DATABASE.md).
 
 | Layer | Choice |
@@ -27,6 +29,33 @@ This is **Phase 1 (MVP)** of the PRD in [`docs/vendrdesk-analysis/02-PRD.md`](do
   - cancel or return-to-origin **releases** the reservation
   - delivery **commits** the sale and marks COD orders paid
   - a return after delivery **restocks**
+
+## Phase 2 — Wholesale ERP (sales & purchase)
+
+You can switch the module on or off in **Settings → Modules**. It's on by default for new stores.
+
+- **Sales**
+  - customer types (default discount and credit days)
+  - customers with a membership ID, credit limit (0 = no limit) and opening balance
+  - price quotations: draft → sent → accepted/rejected, converted into an invoice exactly once
+  - direct invoices with line discounts, VAT, a document discount and extra charges
+  - split payments and use of customer advance; walk-in sales must be paid in full; credit limits are enforced; stock goes out atomically
+  - money receipts settle the opening balance, then the oldest invoices (or invoices you pick); extra money becomes advance
+  - customer returns with optional restock; voiding an unpaid invoice puts the stock back
+  - printable statements and documents
+- **Purchase**
+  - supplier types and suppliers with an opening payable
+  - purchase orders → goods receipts (GRN, partial deliveries allowed) → bills from those receipts; stock rises when goods arrive, and moving-average cost updates
+  - direct bills (stock in) with payment at the counter
+  - supplier payments with automatic or manual allocation and supplier advance
+  - returns to supplier (debit notes)
+- **Reports:** receivable and payable aging (opening, 0–30, 31–60, 61–90, 90+ days) and customer statements of account.
+- **Integrity**
+  - every document number comes from a per-store sequence (INV-, QT-, MR-, SR-, PO-, GRN-, BILL-, SP-, PR-)
+  - stock changes write to the append-only movement ledger
+  - money columns have database CHECK constraints (for example paid + returned ≤ total)
+  - all 21 ERP tables are under FORCE row-level security and are reachable only through the `lv_app` role
+- **Next (Phase 3):** double-entry accounting. Invoices, receipts, bills and payments already carry a `journal_id` slot for ledger posting.
 
 ## Getting started
 
