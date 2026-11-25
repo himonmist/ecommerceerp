@@ -84,11 +84,13 @@ describe("row-level security", () => {
     expect(seenByA.some((r) => r.tenant_id === b.tenantId)).toBe(false);
   });
 
-  it("returns nothing and refuses writes without a tenant context", async () => {
+  it("returns nothing and refuses writes for the app role without a tenant context", async () => {
     await makeStore();
-    expect(await prisma.warehouse.count()).toBe(0);
+    const asAppRoleNoTenant = <T,>(fn: (tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]) => Promise<T>) =>
+      prisma.$transaction(async (tx) => { await tx.$executeRawUnsafe("SET LOCAL ROLE lv_app"); return fn(tx); });
+    expect(await asAppRoleNoTenant((tx) => tx.warehouse.count())).toBe(0);
     await expect(
-      prisma.brand.create({ data: { tenantId: "0190f5b8-3c2a-7b1e-9a0d-1f2e3d4c5b6a", name: "X" } }),
+      asAppRoleNoTenant((tx) => tx.brand.create({ data: { tenantId: "0190f5b8-3c2a-7b1e-9a0d-1f2e3d4c5b6a", name: "X" } })),
     ).rejects.toThrow();
   });
 
@@ -96,5 +98,17 @@ describe("row-level security", () => {
     const a = await makeStore();
     const b = await makeStore();
     await expect(withTenant(a.tenantId, (tx) => tx.brand.create({ data: { tenantId: b.tenantId, name: "Sneaky" } }))).rejects.toThrow();
+  });
+});
+
+describe("least-privilege runtime role", () => {
+  it("runs tenant work as lv_app, which cannot bypass RLS or read platform tables", async () => {
+    const s = await makeStore();
+    const who = await withTenant(s.tenantId, (tx) =>
+      tx.$queryRaw<{ u: string; bypass: boolean; superuser: boolean }[]>`
+        SELECT current_user AS u, rolbypassrls AS bypass, rolsuper AS superuser FROM pg_roles WHERE rolname = current_user`);
+    expect(who[0]).toEqual({ u: "lv_app", bypass: false, superuser: false });
+    await expect(withTenant(s.tenantId, (tx) => tx.$queryRaw`SELECT password_hash FROM users LIMIT 1`)).rejects.toThrow(/permission denied/);
+    await expect(withTenant(s.tenantId, (tx) => tx.$queryRaw`SELECT id FROM sessions LIMIT 1`)).rejects.toThrow(/permission denied/);
   });
 });
