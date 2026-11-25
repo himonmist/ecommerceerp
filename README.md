@@ -2,6 +2,10 @@
 
 **By Link Vision Software Solution.** A multi-tenant commerce platform for growing businesses in Bangladesh: online storefront, catalogue, real-time inventory and orders, with an ERP roadmap (sales/purchase, POS, double-entry accounting).
 
+**Live:** https://linkvision-commerce.vercel.app
+
+![Landing page](docs/screenshots/landing-hero.png)
+
 This is **Phase 1 (MVP)** of the PRD in [`docs/vendrdesk-analysis/02-PRD.md`](docs/vendrdesk-analysis/02-PRD.md). The database follows the reference design in [`04-DATABASE.md`](docs/vendrdesk-analysis/04-DATABASE.md).
 
 | Layer | Choice |
