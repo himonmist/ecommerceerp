@@ -17,7 +17,7 @@
     "vercel-build": "prisma generate && prisma migrate deploy && next build"
   },
   "dependencies": {
-    "@node-rs/argon2": "2.0.2",
+    "@node-rs/argon2": "2.2.2",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "decimal.js": "^10.6.0",
@@ -26,11 +26,11 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "server-only": "^0.0.1",
-    "ulid": "3.0.1",
+    "ulid": "3.0.2",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.65.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "8.23.1",
@@ -41,7 +41,7 @@
     "eslint-config-next": "16.4.6",
     "prisma": "7.10.1",
     "tailwindcss": "^4",
-    "tsx": "4.20.6",
+    "tsx": "4.23.15",
     "typescript": "^5",
     "vitest": "^4.1.12"
   },
