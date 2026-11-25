@@ -1,4 +1,5 @@
 import "server-only";
+import { postBill, postSupplierPayment } from "../accounting/posting";
 import { withTenant, type Tx } from "@/server/db/tenant";
 import { AppError, fromZod } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -12,11 +13,12 @@ import type { z } from "zod";
 
 async function recordBillPayments(tx: Tx, ctx: Ctx, bill: { id: string; number: string; supplierId: string }, date: Date, payments: { method: string; amount: string; reference?: string }[]) {
   for (const p of payments) {
-    await tx.supplierPayment.create({
+    const pay = await tx.supplierPayment.create({
       data: { tenantId: ctx.tenantId, number: await nextNumber(tx, ctx.tenantId, "supplier_payment"), supplierId: bill.supplierId, date, method: p.method,
         reference: p.reference ?? null, amount: p.amount, createdBy: ctx.userId, notes: `Paid with ${bill.number}`,
         allocations: { create: [{ tenantId: ctx.tenantId, billId: bill.id, amount: p.amount }] } },
     });
+    await postSupplierPayment(tx, ctx, pay.id);
   }
 }
 
@@ -46,6 +48,7 @@ export async function createDirectBill(ctx: Ctx, raw: z.input<typeof directBillS
     for (const r of rows) {
       await stockIn(tx, ctx, { variantId: r.variantId, warehouseId, qty: r.qty, type: "purchase", sourceType: "purchase_bill", sourceId: bill.id, reference: number, unitCost: D(r.net).dividedBy(r.qty) });
     }
+    await postBill(tx, ctx, bill.id);
     await recordBillPayments(tx, ctx, bill, asDate(b.billDate), b.payments);
     await audit(tx, ctx, "bill.created", "purchase_bill", bill.id, undefined, { number, total: doc.total, direct: true });
     return bill;
@@ -78,6 +81,7 @@ export async function createBillFromGrn(ctx: Ctx, grnId: string, raw: z.input<ty
       },
     });
     await tx.goodsReceipt.update({ where: { id: grnId }, data: { billId: bill.id } });
+    await postBill(tx, ctx, bill.id);
     await audit(tx, ctx, "bill.created", "purchase_bill", bill.id, undefined, { number: bill.number, grn: grn.number, total: doc.total });
     return bill;
   });

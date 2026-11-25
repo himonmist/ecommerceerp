@@ -1,4 +1,6 @@
 import "server-only";
+import { postReceipt } from "../accounting/posting";
+import { reverseSource } from "../accounting/ledger";
 import { withTenant } from "@/server/db/tenant";
 import { AppError, fromZod } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -58,6 +60,7 @@ export async function recordReceipt(ctx: Ctx, raw: z.input<typeof receiptSchema>
     }
     const toOpening = allocations.find((a) => a.id === OPENING)?.amount ?? "0";
     await tx.customer.update({ where: { id: customer.id }, data: { openingDue: { decrement: toOpening }, advanceBalance: { increment: remainder } } });
+    await postReceipt(tx, ctx, receipt.id);
     await audit(tx, ctx, "receipt.recorded", "customer_receipt", receipt.id, undefined, { number: receipt.number, amount: r.amount, toAdvance: remainder });
     return receipt;
   });
@@ -89,6 +92,7 @@ export async function voidReceipt(ctx: Ctx, id: string) {
         advanceBalance: { increment: money(D(rec.fromAdvance).minus(D(rec.toAdvance))) },
       } });
     }
+    await reverseSource(tx, ctx, "customer_receipt", id, "Receipt voided");
     const updated = await tx.customerReceipt.update({ where: { id }, data: { status: "void" } });
     await audit(tx, ctx, "receipt.voided", "customer_receipt", id, { status: "posted" }, { status: "void" });
     return updated;

@@ -1,4 +1,6 @@
 import "server-only";
+import { postSupplierPayment } from "../accounting/posting";
+import { reverseSource } from "../accounting/ledger";
 import { withTenant } from "@/server/db/tenant";
 import { AppError, fromZod } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -56,6 +58,7 @@ export async function recordSupplierPayment(ctx: Ctx, raw: z.input<typeof suppli
     }
     const toOpening = allocations.find((a) => a.id === OPENING)?.amount ?? "0";
     await tx.supplier.update({ where: { id: sup.id }, data: { openingDue: { decrement: toOpening }, advanceBalance: { increment: remainder } } });
+    await postSupplierPayment(tx, ctx, pay.id);
     await audit(tx, ctx, "supplier_payment.recorded", "supplier_payment", pay.id, undefined, { number: pay.number, amount: r.amount, toAdvance: remainder });
     return pay;
   });
@@ -79,6 +82,7 @@ export async function voidSupplierPayment(ctx: Ctx, id: string) {
       await tx.purchaseBill.update({ where: { id: b.id }, data: { paid: money(paid), paymentStatus: paymentStatus(b.total, paid, b.returned) } });
     }
     await tx.supplier.update({ where: { id: sup.id }, data: { openingDue: { increment: money(toOpening) }, advanceBalance: { increment: money(D(pay.fromAdvance).minus(D(pay.toAdvance))) } } });
+    await reverseSource(tx, ctx, "supplier_payment", id, "Payment voided");
     const updated = await tx.supplierPayment.update({ where: { id }, data: { status: "void" } });
     await audit(tx, ctx, "supplier_payment.voided", "supplier_payment", id, { status: "posted" }, { status: "void" });
     return updated;

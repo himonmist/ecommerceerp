@@ -866,3 +866,77 @@ model PurchaseReturnItem {
 
   @@map("purchase_return_items")
 }
+
+// ───────────────────────── Accounting (double-entry) ─────────────────────────
+
+model LedgerSettings {
+  tenantId      String    @id @map("tenant_id") @db.Uuid
+  startedAt     DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  lockedThrough DateTime? @map("locked_through") @db.Date // no postings dated on/before this day
+
+  @@map("ledger_settings")
+}
+
+model Account {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  tenantId    String        @map("tenant_id") @db.Uuid
+  code        String
+  name        String
+  nature      String // asset|liability|equity|income|expense
+  groupName   String        @map("group_name")
+  systemKey   String?       @map("system_key")
+  kind        String? // cash|bank|wallet for money accounts
+  description String?
+  isActive    Boolean       @default(true) @map("is_active")
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  lines       JournalLine[]
+
+  @@unique([tenantId, code])
+  @@unique([tenantId, systemKey])
+  @@map("accounts")
+}
+
+model Journal {
+  id                String        @id @default(uuid(7)) @db.Uuid
+  tenantId          String        @map("tenant_id") @db.Uuid
+  number            String
+  voucherType       String        @map("voucher_type") // CV|DV|JV|TM|SYS
+  date              DateTime      @db.Date
+  description       String
+  reference         String?
+  sourceType        String?       @map("source_type")
+  sourceId          String?       @map("source_id") @db.Uuid
+  status            String        @default("approved") // draft|approved|verified|cancelled
+  amount            Decimal       @db.Decimal(18, 2) // total debits
+  reversesJournalId String?       @map("reverses_journal_id") @db.Uuid
+  reversedById      String?       @map("reversed_by_id") @db.Uuid
+  cancelReason      String?       @map("cancel_reason")
+  createdBy         String?       @map("created_by") @db.Uuid
+  verifiedBy        String?       @map("verified_by") @db.Uuid
+  verifiedAt        DateTime?     @map("verified_at") @db.Timestamptz(6)
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  lines             JournalLine[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId, date])
+  @@index([tenantId, sourceType, sourceId])
+  @@map("journals")
+}
+
+model JournalLine {
+  id        String  @id @default(uuid(7)) @db.Uuid
+  tenantId  String  @map("tenant_id") @db.Uuid
+  journalId String  @map("journal_id") @db.Uuid
+  accountId String  @map("account_id") @db.Uuid
+  debit     Decimal @default(0) @db.Decimal(18, 2)
+  credit    Decimal @default(0) @db.Decimal(18, 2)
+  partyType String? @map("party_type") // customer|supplier
+  partyId   String? @map("party_id") @db.Uuid
+  memo      String?
+  journal   Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  account   Account @relation(fields: [accountId], references: [id])
+
+  @@index([tenantId, accountId])
+  @@index([journalId])
+  @@map("journal_lines")
+}

@@ -1,4 +1,5 @@
 import "server-only";
+import { postPurchaseReturn } from "../accounting/posting";
 import { withTenant } from "@/server/db/tenant";
 import { AppError, fromZod } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -46,6 +47,7 @@ export async function createPurchaseReturn(ctx: Ctx, billId: string, raw: z.inpu
     const returned = D(bill.returned).plus(reduceDue);
     await tx.purchaseBill.update({ where: { id: billId }, data: { returned: money(returned), paymentStatus: paymentStatus(bill.total, bill.paid, returned) } });
     if (toAdvance.greaterThan(0)) await tx.supplier.update({ where: { id: bill.supplierId }, data: { advanceBalance: { increment: money(toAdvance) } } });
+    await postPurchaseReturn(tx, ctx, ret.id);
     await audit(tx, ctx, "purchase_return.created", "purchase_return", ret.id, undefined, { number: ret.number, bill: bill.number, amount: money(amount) });
     return ret;
   });

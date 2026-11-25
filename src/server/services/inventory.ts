@@ -1,4 +1,5 @@
 import "server-only";
+import { postStockAdjustment } from "./accounting/posting";
 import { withTenant } from "@/server/db/tenant";
 import { AppError, fromZod } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -31,6 +32,8 @@ export async function adjustStock(ctx: Ctx, raw: z.input<typeof stockAdjustSchem
       data: { tenantId: ctx.tenantId, variantId, warehouseId: row.warehouse_id, type: change > 0 ? "adjustment_in" : "adjustment_out",
         qtyChange: change, qtyBefore: row.on_hand, qtyAfter: after, sourceType: "adjustment", notes: reason, createdBy: ctx.userId },
     });
+    const variant = await tx.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { costPrice: true } });
+    await postStockAdjustment(tx, ctx, { variantId, change, unitCost: variant.costPrice, reason, movementId: movement.id });
     await audit(tx, ctx, "stock.adjusted", "variant", variantId, { onHand: row.on_hand }, { onHand: after, reason });
     return movement;
   });

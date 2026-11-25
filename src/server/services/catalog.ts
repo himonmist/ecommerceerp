@@ -1,4 +1,5 @@
 import "server-only";
+import { postOpening } from "./accounting/posting";
 import { withTenant, type Tx } from "@/server/db/tenant";
 import { AppError, fromZod, isUniqueViolation } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -81,6 +82,8 @@ export async function createProduct(ctx: Ctx, raw: ProductInput) {
         }
         variants.push(variant);
       }
+      const openingValue = input.variants.reduce((s, v) => s + Number(v.costPrice ?? 0) * v.stock, 0);
+      await postOpening(tx, ctx, { kind: "stock", sourceId: product.id, amount: openingValue.toFixed(2), label: `stock of ${product.name}` });
       await audit(tx, ctx, "product.created", "product", product.id, undefined, { name: product.name, variants: variants.length });
       return { ...product, variants };
     });

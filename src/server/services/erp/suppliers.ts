@@ -1,4 +1,5 @@
 import "server-only";
+import { postOpening } from "../accounting/posting";
 import { withTenant } from "@/server/db/tenant";
 import { AppError, fromZod, isUniqueViolation } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -41,6 +42,7 @@ export async function createSupplier(ctx: Ctx, raw: z.input<typeof supplierSchem
         data: { tenantId: ctx.tenantId, name: s.name, contactPerson: s.contactPerson ?? null, phone: s.phone ?? null, email: s.email ?? null,
           address: s.address ?? null, supplierTypeId: s.supplierTypeId ?? null, openingDue: s.openingBalance ?? "0" },
       });
+      await postOpening(tx, ctx, { kind: "supplier", sourceId: sup.id, amount: s.openingBalance ?? "0", label: sup.name });
       await audit(tx, ctx, "supplier.created", "supplier", sup.id, undefined, { name: sup.name, opening: s.openingBalance ?? "0" });
       return sup;
     });

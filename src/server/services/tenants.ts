@@ -1,4 +1,5 @@
 import "server-only";
+import { seedLedger } from "./accounting/ledger";
 import { prisma } from "@/server/db/client";
 import { AppError, fromZod, isUniqueViolation } from "@/server/errors";
 import { hashPassword } from "@/server/security/password";
@@ -50,6 +51,7 @@ export async function registerStore(raw: RegisterInput, meta: { ip?: string | nu
       await tx.shippingZone.createMany({ data: DEFAULT_ZONES.map((z) => ({ ...z, tenantId: tenant.id })) });
       await tx.documentSequence.createMany({ data: DEFAULT_SEQUENCES.map((s) => ({ ...s, tenantId: tenant.id })) });
       await tx.tenantModule.createMany({ data: MODULES.map((m) => ({ tenantId: tenant.id, module: m, enabled: m === "storefront" || m === "erp" })) });
+      await seedLedger(tx, tenant.id);
       await tx.subscription.create({
         data: { tenantId: tenant.id, planId: plan.id, status: "trialing", currentPeriodStart: now, currentPeriodEnd: trialEndsAt },
       });

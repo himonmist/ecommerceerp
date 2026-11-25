@@ -1,4 +1,5 @@
 import "server-only";
+import { postSalesReturn } from "../accounting/posting";
 import { withTenant } from "@/server/db/tenant";
 import { AppError, fromZod } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -52,6 +53,7 @@ export async function createSalesReturn(ctx: Ctx, invoiceId: string, raw: z.inpu
     const returned = D(inv.returned).plus(reduceDue);
     await tx.salesInvoice.update({ where: { id: invoiceId }, data: { returned: money(returned), paymentStatus: paymentStatus(inv.total, inv.paid, returned) } });
     if (inv.customerId && toAdvance.greaterThan(0)) await tx.customer.update({ where: { id: inv.customerId }, data: { advanceBalance: { increment: money(toAdvance) } } });
+    await postSalesReturn(tx, ctx, ret.id);
     await audit(tx, ctx, "sales_return.created", "sales_return", ret.id, undefined, { number: ret.number, invoice: inv.number, amount: money(amount) });
     return ret;
   });

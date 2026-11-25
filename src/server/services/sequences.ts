@@ -5,6 +5,7 @@ import type { Tx } from "@/server/db/tenant";
 export const PREFIXES = {
   order: "ORD-", customer: "CMID-", quotation: "QT-", invoice: "INV-", receipt: "MR-", sales_return: "SR-",
   purchase_order: "PO-", grn: "GRN-", bill: "BILL-", supplier_payment: "SP-", purchase_return: "PR-",
+  journal: "JE-", CV: "CV-", DV: "DV-", JV: "JV-", TM: "TM-",
 } as const;
 export type DocType = keyof typeof PREFIXES;
 export const DEFAULT_SEQUENCES = [{ docType: "order", prefix: PREFIXES.order }] as const;

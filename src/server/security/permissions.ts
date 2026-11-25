@@ -10,6 +10,7 @@ export const PERMISSIONS = [
   "marketing.manage",
   "sales.view", "sales.manage",
   "purchase.view", "purchase.manage",
+  "accounting.view", "accounting.manage", "accounting.verify",
   "settings.manage",
   "team.manage",
 ] as const;
@@ -18,7 +19,7 @@ export type Permission = (typeof PERMISSIONS)[number];
 export const ROLE_PRESETS: Record<string, Permission[]> = {
   Owner: [...PERMISSIONS],
   Manager: ["dashboard.view", "catalog.view", "catalog.manage", "inventory.manage", "orders.view", "orders.manage", "customers.view", "marketing.manage",
-    "sales.view", "sales.manage", "purchase.view", "purchase.manage"],
+    "sales.view", "sales.manage", "purchase.view", "purchase.manage", "accounting.view", "accounting.manage"],
   Staff: ["dashboard.view", "catalog.view", "orders.view", "orders.manage", "customers.view", "sales.view", "purchase.view"],
 };
 

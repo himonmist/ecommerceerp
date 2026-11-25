@@ -1,4 +1,5 @@
 import "server-only";
+import { postOrderDelivered, reverseOrder } from "./accounting/posting";
 import { withTenant, type Tx } from "@/server/db/tenant";
 import { AppError, fromZod } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -124,6 +125,8 @@ export async function transitionOrder(ctx: Ctx, orderId: string, to: OrderStatus
     if (to === "returned" && from === "delivered" && order.paymentStatus === "paid") paymentStatus = "refunded";
 
     const updated = await tx.order.update({ where: { id: orderId }, data: { status: to, paymentStatus } });
+    if (to === "delivered") await postOrderDelivered(tx, ctx, orderId);
+    if (to === "returned" && from === "delivered") await reverseOrder(tx, ctx, orderId, "Returned after delivery");
     await tx.orderEvent.create({ data: { tenantId: ctx.tenantId, orderId, fromStatus: from, toStatus: to, note: note?.slice(0, 500) ?? null, actorId: ctx.userId } });
     await audit(tx, ctx, "order.status_changed", "order", orderId, { status: from }, { status: to });
     return updated;

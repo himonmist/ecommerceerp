@@ -1,4 +1,5 @@
 import "server-only";
+import { postOpening } from "../accounting/posting";
 import { withTenant } from "@/server/db/tenant";
 import { AppError, fromZod, isUniqueViolation } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -49,6 +50,7 @@ export async function createCustomer(ctx: Ctx, raw: z.input<typeof erpCustomerSc
           creditLimit: c.creditLimit ?? "0", openingDue: c.openingBalance ?? "0",
         },
       });
+      await postOpening(tx, ctx, { kind: "customer", sourceId: customer.id, amount: c.openingBalance ?? "0", label: customer.name });
       await audit(tx, ctx, "customer.created", "customer", customer.id, undefined, { name: customer.name, opening: c.openingBalance ?? "0" });
       return customer;
     });

@@ -116,3 +116,20 @@ export const supplierPaymentSchema = receiptSchema.omit({ customerId: true, allo
   supplierId: uuid,
   allocations: z.array(z.object({ billId: uuid, amount: money })).max(200).optional(),
 });
+
+// ── Accounting ──
+const amountPos = money.refine((v) => Number(v) > 0, "Amount must be more than 0");
+const vHeader = { date, description: z.string().trim().min(3, "Describe this entry").max(300), reference: optText(100), status: z.enum(["draft", "approved"]).default("approved") };
+export const voucherSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("CV"), moneyAccountId: uuid, lines: z.array(z.object({ accountId: uuid, amount: amountPos, memo: optText(200) })).min(1).max(50), ...vHeader }),
+  z.object({ type: z.literal("DV"), moneyAccountId: uuid, lines: z.array(z.object({ accountId: uuid, amount: amountPos, memo: optText(200) })).min(1).max(50), ...vHeader }),
+  z.object({ type: z.literal("TM"), fromAccountId: uuid, toAccountId: uuid, amount: amountPos, ...vHeader }),
+  z.object({ type: z.literal("JV"), lines: z.array(z.object({ accountId: uuid, debit: optMoney, credit: optMoney, memo: optText(200) })).min(2).max(100), ...vHeader }),
+]);
+export const accountSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  nature: z.enum(["asset", "liability", "equity", "income", "expense"]),
+  groupName: optText(80),
+  kind: z.preprocess((v) => (v === "" || v == null ? undefined : v), z.enum(["cash", "bank", "wallet"]).optional()),
+  description: optText(300),
+});

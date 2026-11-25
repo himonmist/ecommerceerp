@@ -1,4 +1,6 @@
 import "server-only";
+import { postInvoice, postReceipt } from "../accounting/posting";
+import { reverseSource } from "../accounting/ledger";
 import { withTenant, type Tx } from "@/server/db/tenant";
 import { AppError, fromZod } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -60,22 +62,27 @@ export async function createInvoiceTx(tx: Tx, ctx: Ctx, input: ParsedInvoice) {
   for (const r of rows) {
     await stockOut(tx, ctx, { variantId: r.variantId, warehouseId, qty: r.qty, type: "sale", sourceType: "sales_invoice", sourceId: invoice.id, reference: number }, r.description);
   }
+  await postInvoice(tx, ctx, invoice.id);
   const date = asDate(input.invoiceDate);
+  const receiptIds: string[] = [];
   for (const p of input.payments) {
-    await tx.customerReceipt.create({
+    const rc = await tx.customerReceipt.create({
       data: { tenantId: ctx.tenantId, number: await nextNumber(tx, ctx.tenantId, "receipt"), customerId: customer?.id ?? null, date, method: p.method,
         reference: p.reference ?? null, amount: p.amount, createdBy: ctx.userId, notes: `Paid with ${number}`,
         allocations: { create: [{ tenantId: ctx.tenantId, invoiceId: invoice.id, amount: p.amount }] } },
     });
+    receiptIds.push(rc.id);
   }
   if (advanceUsed > 0 && customer) {
     const amt = money(D(advanceUsed));
-    await tx.customerReceipt.create({
+    const adv = await tx.customerReceipt.create({
       data: { tenantId: ctx.tenantId, number: await nextNumber(tx, ctx.tenantId, "receipt"), customerId: customer.id, date, method: "advance", amount: amt, fromAdvance: amt,
         createdBy: ctx.userId, notes: `Advance applied to ${number}`, allocations: { create: [{ tenantId: ctx.tenantId, invoiceId: invoice.id, amount: amt }] } },
     });
+    receiptIds.push(adv.id);
     await tx.customer.update({ where: { id: customer.id }, data: { advanceBalance: { decrement: amt } } });
   }
+  for (const id of receiptIds) await postReceipt(tx, ctx, id);
   await audit(tx, ctx, "invoice.created", "sales_invoice", invoice.id, undefined, { number, total: doc.total, paid: money(paid) });
   return invoice;
 }
@@ -126,6 +133,7 @@ export async function voidInvoice(ctx: Ctx, id: string, reason: string) {
     for (const it of inv.items) {
       await stockIn(tx, ctx, { variantId: it.variantId, warehouseId: inv.warehouseId, qty: it.qty, type: "invoice_void", sourceType: "sales_invoice", sourceId: inv.id, reference: inv.number, notes: reason.slice(0, 200) });
     }
+    await reverseSource(tx, ctx, "sales_invoice", id, `Invoice voided: ${reason.slice(0, 100)}`);
     const updated = await tx.salesInvoice.update({ where: { id }, data: { status: "void" } });
     await audit(tx, ctx, "invoice.voided", "sales_invoice", id, { status: "posted" }, { status: "void", reason: reason.slice(0, 200) });
     return updated;

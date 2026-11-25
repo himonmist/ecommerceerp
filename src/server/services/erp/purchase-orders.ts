@@ -1,4 +1,5 @@
 import "server-only";
+import { postGoodsReceipt } from "../accounting/posting";
 import { withTenant } from "@/server/db/tenant";
 import { AppError, fromZod } from "@/server/errors";
 import { authorize } from "@/server/security/permissions";
@@ -80,6 +81,7 @@ export async function receiveGoods(ctx: Ctx, poId: string, raw: z.input<typeof g
     const after = await tx.purchaseOrderItem.findMany({ where: { poId } });
     const status = after.every((i) => i.receivedQty >= i.qty) ? "received" : "partially_received";
     await tx.purchaseOrder.update({ where: { id: poId }, data: { status } });
+    await postGoodsReceipt(tx, ctx, grn.id);
     await audit(tx, ctx, "goods_receipt.created", "goods_receipt", grn.id, undefined, { number: grn.number, po: po.number });
     return grn;
   });
