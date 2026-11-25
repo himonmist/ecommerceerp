@@ -22,5 +22,7 @@ describe("pricing", () => {
 
   it("formats taka", () => {
     expect(formatBDT("1234567.5")).toBe("৳1,234,567.50");
+    expect(formatBDT("-41100")).toBe("−৳41,100.00");
+    expect(formatBDT("-0.004")).toBe("৳0.00");
   });
 });

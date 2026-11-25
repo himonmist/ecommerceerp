@@ -24,5 +24,6 @@ export function couponDiscount(c: { discountType: string; value: MoneyInput; min
 
 const bdt = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export function formatBDT(v: MoneyInput) {
-  return `৳${bdt.format(Number(fmt(d(v))))}`;
+  const n = Number(fmt(d(v)));
+  return n < 0 ? `−৳${bdt.format(-n)}` : `৳${bdt.format(Math.abs(n))}`;
 }

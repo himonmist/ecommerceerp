@@ -21,7 +21,7 @@ export default async function BillPage({ params, searchParams }: { params: Promi
     <>
       <Link href="/dashboard/erp/bills" className="text-sm font-medium text-slate-500 hover:text-slate-900 print:hidden">← Bills</Link>
       <PageHeader title={`Bill ${b.number}`} subtitle={`${ymd(b.billDate)} · ${b.supplier.name}${b.supplierBillNo ? ` · supplier ref ${b.supplierBillNo}` : ""}${b.grnId ? " · from goods receipt" : " · direct stock-in"}`}
-        action={<div className="flex items-center gap-2"><StatusBadge status={b.paymentStatus} /><PrintButton /></div>} />
+        action={<div className="flex items-center gap-2"><StatusBadge status={b.paymentStatus} />{b.journalId && ctx.permissions.includes("accounting.view") && <Link className="btn-secondary print:hidden" href={`/dashboard/accounting/journals/${b.journalId}`}>Journal entry</Link>}<PrintButton /></div>} />
       {sp.created && <div className="mb-6 print:hidden"><FormSuccess message={b.grnId ? "Bill created from the goods receipt." : "Bill saved and stock received."} /></div>}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

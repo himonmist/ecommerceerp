@@ -8,6 +8,8 @@
 
 ![ERP direct invoice](docs/screenshots/erp-new-invoice.png)
 
+![Profit & loss](docs/screenshots/accounting-profit-loss.png)
+
 This is **Phase 1 (MVP)** of the PRD in [`docs/vendrdesk-analysis/02-PRD.md`](docs/vendrdesk-analysis/02-PRD.md). The database follows the reference design in [`04-DATABASE.md`](docs/vendrdesk-analysis/04-DATABASE.md).
 
 | Layer | Choice |
@@ -55,7 +57,24 @@ You can switch the module on or off in **Settings → Modules**. It's on by defa
   - stock changes write to the append-only movement ledger
   - money columns have database CHECK constraints (for example paid + returned ≤ total)
   - all 21 ERP tables are under FORCE row-level security and are reachable only through the `lv_app` role
-- **Next (Phase 3):** double-entry accounting. Invoices, receipts, bills and payments already carry a `journal_id` slot for ledger posting.
+
+## Phase 3 — Double-entry accounting
+
+- **Books that keep themselves.** Every business event posts a balanced journal in the *same database transaction* as the document:
+  - online COD orders (on delivery), direct invoices and receipts, sales returns
+  - goods receipts (through *Goods Received Not Invoiced*), supplier bills, supplier payments, purchase returns
+  - stock adjustments and opening balances
+  - voids and post-delivery returns post exact reversals
+- **Chart of accounts** made for a Bangladeshi trading business: cash, bank, bKash, Nagad, card clearing, COD receivable, AR/AP, inventory, VAT input/output, advances, equity, revenue, COGS and operating expenses. You can add your own accounts (for example each bank account).
+- **Manual vouchers:** CV (income), DV (expense), TM (transfer between money accounts) and JV (free-form, live balance check). They go draft → approved → verified. Cancelling posts a reversal; nothing is ever edited or deleted after posting.
+- **Reports:** trial balance, profit & loss, balance sheet (with profit to date), general ledger per account with running balance, VAT summary by month (Mushak working), day book, cash & bank balances.
+- **Period close:** lock the books through a date and nothing can be posted on or before it, automatic or manual.
+- **Existing stores** click *Set up accounting* once. It posts one opening entry from current stock at cost, customer dues, supplier payables, advances and unbilled receipts.
+- **Guaranteed by the database, not just the code:**
+  - a journal whose debits don't equal its credits can't be committed (deferred constraint trigger)
+  - posted lines can't be changed or deleted
+  - closed periods reject postings
+  - all ledger tables are under FORCE row-level security through `lv_app`
 
 ## Getting started
 

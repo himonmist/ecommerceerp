@@ -26,6 +26,12 @@ const PURCHASE: Item[] = [
   { href: "/dashboard/erp/suppliers", label: "Suppliers", icon: Icon.store },
   { href: "/dashboard/erp/reports", label: "Dues & aging", icon: Icon.layers },
 ];
+const ACCOUNTING: Item[] = [
+  { href: "/dashboard/accounting", label: "Books overview", icon: Icon.chart, exact: true },
+  { href: "/dashboard/accounting/journals", label: "Entries & vouchers", icon: Icon.layers },
+  { href: "/dashboard/accounting/accounts", label: "Chart of accounts", icon: Icon.box },
+  { href: "/dashboard/accounting/reports", label: "Financial reports", icon: Icon.tag },
+];
 const SETTINGS: Item[] = [{ href: "/dashboard/settings", label: "Settings", icon: Icon.settings }];
 
 function Group({ title, items, path }: { title?: string; items: Item[]; path: string }) {
@@ -45,13 +51,14 @@ function Group({ title, items, path }: { title?: string; items: Item[]; path: st
   );
 }
 
-export function DashboardNav({ erp }: { erp: boolean }) {
+export function DashboardNav({ erp, accounting }: { erp: boolean; accounting: boolean }) {
   const path = usePathname();
   return (
     <nav aria-label="Dashboard" className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
       <Group items={STORE} path={path} />
       {erp && <Group title="ERP · Sales" items={SALES} path={path} />}
       {erp && <Group title="ERP · Purchase" items={PURCHASE} path={path} />}
+      {accounting && <Group title="Accounting" items={ACCOUNTING} path={path} />}
       <Group title="Account" items={SETTINGS} path={path} />
     </nav>
   );

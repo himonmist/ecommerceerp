@@ -21,7 +21,7 @@ export default async function InvoicePage({ params, searchParams }: { params: Pr
     <>
       <Link href="/dashboard/erp/invoices" className="text-sm font-medium text-slate-500 hover:text-slate-900 print:hidden">← Invoices</Link>
       <PageHeader title={`Invoice ${inv.number}`} subtitle={`${ymd(inv.invoiceDate)} · ${inv.customerName}`}
-        action={<div className="flex items-center gap-2"><StatusBadge status={inv.status === "void" ? "void" : inv.paymentStatus} /><PrintButton /></div>} />
+        action={<div className="flex items-center gap-2"><StatusBadge status={inv.status === "void" ? "void" : inv.paymentStatus} />{inv.journalId && ctx.permissions.includes("accounting.view") && <Link className="btn-secondary print:hidden" href={`/dashboard/accounting/journals/${inv.journalId}`}>Journal entry</Link>}<PrintButton /></div>} />
       {sp.created && <div className="mb-6 print:hidden"><FormSuccess message="Invoice saved and stock updated." /></div>}
       {sp.voided && <div className="mb-6 print:hidden"><FormSuccess message="Invoice voided and stock restored." /></div>}
       <div className="grid gap-6 lg:grid-cols-3">
