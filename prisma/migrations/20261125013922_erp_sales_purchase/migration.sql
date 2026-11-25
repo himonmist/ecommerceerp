@@ -509,6 +509,15 @@ ALTER TABLE "purchase_returns" ADD CONSTRAINT "purchase_returns_supplier_id_fkey
 -- AddForeignKey
 ALTER TABLE "purchase_return_items" ADD CONSTRAINT "purchase_return_items_return_id_fkey" FOREIGN KEY ("return_id") REFERENCES "purchase_returns"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- The least-privilege role is normally created by 20261125020000_app_role, which sorts
+-- after this migration on a fresh database. Create it here too (idempotent).
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'lv_app') THEN
+    CREATE ROLE lv_app NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT;
+  END IF;
+END $$;
+
 -- ── Tenant isolation, least privilege and integrity for ERP tables ──
 DO $$
 DECLARE t text;
